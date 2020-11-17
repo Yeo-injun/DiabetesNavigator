@@ -77,6 +77,13 @@ class Food_nutrient_ListView(generics.GenericAPIView):
 
 ### 식사 등록(Text) - 음식목록에서 음식선택해서 등록하기 ###
 from .models import Food_nutrient
+def retrieve_food(queryset):
+    one_serving = queryset.one_serving
+    kcal = queryset.kcal 
+    carbohydrate = queryset.carbohydrate 
+    protein = queryset.protein
+    fat = queryset.fat
+    return one_serving, kcal, carbohydrate, protein, fat
 
 class Food_detail_text_RegisterView(generics.GenericAPIView):
     serializer_class = Food_detail_text_RegisterSerializer
@@ -94,11 +101,13 @@ class Food_detail_text_RegisterView(generics.GenericAPIView):
 
             # 음식ID로 음식영양성분 DB조회 : 음식량에 따른 영양성분 계산을위해 1인분기준 영양성분 변수 할당
             food_nutrient = Food_nutrient.objects.get(food_ID = food_ID) # QuerySet으로 DB Objects 추출(속성, 메소드 존재)
-            one_serving = food_nutrient.one_serving
-            kcal = food_nutrient.kcal 
-            carbohydrate = food_nutrient.carbohydrate 
-            protein = food_nutrient.protein
-            fat = food_nutrient.fat
+            one_serving, kcal, carbohydrate, protein, fat = retrieve_food(food_nutrient)
+            
+            # one_serving = food_nutrient.one_serving
+            # kcal = food_nutrient.kcal 
+            # carbohydrate = food_nutrient.carbohydrate 
+            # protein = food_nutrient.protein
+            # fat = food_nutrient.fat
             
             # 음식양에 따라 섭취량 계산
             food_kcal = food_quantity * (kcal / one_serving) 
@@ -126,19 +135,36 @@ class Food_detail_text_RegisterView(generics.GenericAPIView):
 
 ### 식사 등록(Photo) ###
 from api.serializers import Meal_record_photo_RegisterSerializer
+import subprocess
 
 class Meal_record_photo_RegisterView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     serializer_class = Meal_record_photo_RegisterSerializer
 
+
     def post(self, request, *args, **kwargs) :
-        print(request.data['meal_record_ID'])
-        print(request.data['photo_file'])
-        # Yolo 실행 
-        # 실행 결과값 return받아서 serializer에 저장
+        photo = request.data['photo_file']
+
+        print('########## 정상 실행될 것이다?!')
+        command = subprocess.check_output("dir") # YOLO 실행 명령어 및 반환 변수 설정
+        print('########## 정상 실행되었다?!')
+        # photo 변수를 넣어서 Yolo 실행 
+        # 실행 결과값 return받아서 yolo_photo 변수에 저장
+
+        yolo_photo = 'C:/Users/Administrator/Desktop/test.jpg'
         
-        serializer = self.get_serializer(data=request.data)
+        # YOLO반환값을 반영하여 Serialize형식 맞추기
+        temp = {'username':request.data['username'],
+                'meal_record_ID':request.data['meal_record_ID'],
+                'date':request.data['date'],
+                'time':request.data['time'],
+                'photo_file':request.data['photo_file'], # yolo_photo로 바꾸기...
+                'photo_name':"테스트용"
+                }
+
+        # Serialize 및 DB저장
+        serializer = self.get_serializer(data=temp)
         if serializer.is_valid(raise_exception=True) :
             meal_record = serializer.save()
             return Response({"meal_record" : Meal_record_text_RegisterSerializer(meal_record, context=self.get_serializer_context()).data})

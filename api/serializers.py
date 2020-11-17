@@ -45,6 +45,7 @@ class Food_detail_text_RegisterSerializer(serializers.ModelSerializer):
 class Meal_record_photo_RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Meal_record
+        # fields = ('username', 'date', 'time', 'photo_file', 'photo_name')
         fields = ('username', 'meal_record_ID', 'date', 'time', 'photo_file', 'photo_name')
 
 
