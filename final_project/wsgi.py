@@ -7,10 +7,25 @@ For more information on this file, see
 https://docs.djangoproject.com/en/3.1/howto/deployment/wsgi/
 """
 
-import os
+# import os
 
-from django.core.wsgi import get_wsgi_application
+# from django.core.wsgi import get_wsgi_application
+
+# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'final_project.settings')
+
+# application = get_wsgi_application()
+
+import os
+import sys
+
+path = '/home/allrecipes/project/django/DiatbetesNavigator/'  # 경로 확인 요망
+if path not in sys.path:
+    sys.path.append(path)
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'final_project.settings')
 
-application = get_wsgi_application()
+
+from django.core.wsgi import get_wsgi_application
+from django.contrib.staticfiles.handlers import StaticFilesHandler
+application = StaticFilesHandler(get_wsgi_application())
+

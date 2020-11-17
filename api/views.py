@@ -1,9 +1,23 @@
 from rest_framework import generics, permissions
 from rest_framework.response import Response
+from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 from knox.models import AuthToken
 
 from .serializers import Account_Serializer, Profile_Serializer
+from .models import User_Profile
+
+#-------- 에너지필요량 계산함수 --------#
+def cal_energy_needs(sex, birthdate, PA, weight, height):
+    age = datetime.today().year - birthdate.year + 1
+    if sex == True : # 남자일때 energy_needs 계산
+        male_energy_needs = 354 - (6.91 * age) + PA*(9.36*weight + 726*height)
+        return male_energy_needs
+    else : 
+        female_energy_needs = 662 - (9.53 * age) + PA*(15.91*weight + 539.6*height)
+        return female_energy_needs
+
 
 # Account_Register API
 class Account_RegisterAPI(generics.GenericAPIView):
@@ -18,14 +32,31 @@ class Account_RegisterAPI(generics.GenericAPIView):
             "token": AuthToken.objects.create(user)[1]
             })
 
-# Profile_Register API
-class Profile_RegisterAPI(generics.GenericAPIView):
+# Profile_Register API // 에너지 필요량 프론트엔드에서 계산해서 받기..
+class ProfileAPI(generics.GenericAPIView):
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    permission_classes = (IsAuthenticated,)
+
+    queryset = User_Profile.objects.all()
     serializer_class = Profile_Serializer
 
+    # 프로필 조회
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        queryset = queryset.get(user = request.user)
+        
+        serializer = self.get_serializer_class()
+        serializer = serializer(queryset)
+
+        return Response(serializer.data)
+
+    # 프로필 등록 // energy_needs는 프론트에서 계산해서 넘겨주기...
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
+
         if serializer.is_valid(raise_exception=True) :
             profile = serializer.save()
+        
             return Response({
             "profile": Profile_Serializer(profile, context=self.get_serializer_context()).data,
             })
@@ -46,7 +77,7 @@ class LoginAPI(KnoxLoginView):
     
     def post(self, request, format=None):
         serializer = AuthTokenSerializer(data=request.data)
-        print(request.data)
+        
         if serializer.is_valid(raise_exception=True): # serialize된 data가 invalid하면 오류 메세지가 뜸
             user = serializer.validated_data['user']
             login(request, user)

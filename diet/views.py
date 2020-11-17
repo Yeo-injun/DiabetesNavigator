@@ -54,7 +54,7 @@ class Meal_record_text_RegisterView(generics.GenericAPIView):
             return Response({"meal_record" : Meal_record_text_RegisterSerializer(meal_record, context=self.get_serializer_context()).data})
 
 
-### 식사 등록(Text) - 음식목록 ###
+### 식사 등록(Text) - 음식목록 가져오기 ###
 from .models import Food_nutrient
 
 class Food_nutrient_ListView(generics.GenericAPIView):
@@ -75,7 +75,7 @@ class Food_nutrient_ListView(generics.GenericAPIView):
 
 
 
-### 식사 등록(Text) - 음식등록 ###
+### 식사 등록(Text) - 음식목록에서 음식선택해서 등록하기 ###
 from .models import Food_nutrient
 
 class Food_detail_text_RegisterView(generics.GenericAPIView):
@@ -123,6 +123,28 @@ class Food_detail_text_RegisterView(generics.GenericAPIView):
 
             return Response({"food_detail" 
                             : Food_detail_ListSerializer(food_detail, context=self.get_serializer_context()).data})
+
+### 식사 등록(Photo) ###
+from api.serializers import Meal_record_photo_RegisterSerializer
+
+class Meal_record_photo_RegisterView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    serializer_class = Meal_record_photo_RegisterSerializer
+
+    def post(self, request, *args, **kwargs) :
+        print(request.data['meal_record_ID'])
+        print(request.data['photo_file'])
+        # Yolo 실행 
+        # 실행 결과값 return받아서 serializer에 저장
+        
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True) :
+            meal_record = serializer.save()
+            return Response({"meal_record" : Meal_record_text_RegisterSerializer(meal_record, context=self.get_serializer_context()).data})
+
+
+
 
 
 ### 식사기록 섭취음식 조회 ###
