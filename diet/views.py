@@ -90,7 +90,7 @@ def retrieve_food(food_ID):
     carbohydrate = queryset.carbohydrate 
     protein = queryset.protein
     fat = queryset.fat
-    return one_serving, kcal, carbohydrate, protein, fat # food_name은 이후 수정시에 추가예정
+    return food_name, one_serving, kcal, carbohydrate, protein, fat # food_name은 이후 수정시에 추가예정
 
 class Food_detail_text_RegisterView(generics.GenericAPIView):
     serializer_class = Food_detail_text_RegisterSerializer
@@ -103,12 +103,12 @@ class Food_detail_text_RegisterView(generics.GenericAPIView):
             # Serializer에서 음식ID 등 value값 추출
             meal_record_ID = serializer.data['meal_record_ID']
             food_ID = serializer.data['food_ID']
-            food_name = serializer.data['food_name']
+            # food_name = serializer.data['food_name'] ### 너는 탈락이야 임마!!
             food_quantity = serializer.data['food_quantity']
 
             # 음식ID로 음식영양성분 DB조회 : 음식량에 따른 영양성분 계산을위해 1인분기준 영양성분 변수 할당
             # food_nutrient = Food_nutrient.objects.get(food_ID = food_ID) # QuerySet으로 DB Objects 추출(속성, 메소드 존재)
-            one_serving, kcal, carbohydrate, protein, fat = retrieve_food(food_ID)
+            food_name, one_serving, kcal, carbohydrate, protein, fat = retrieve_food(food_ID)
             
             # 음식양에 따라 섭취량 계산
             food_kcal = food_quantity * (kcal / one_serving) 
@@ -154,17 +154,18 @@ class Meal_record_photo_RegisterView(generics.GenericAPIView):
         # 원본사진 YOLO로 보낸 후 YOLO 실행
         ##########################################
         print('########## 정상 실행될 것이다?!')
-        command = subprocess.check_output("ls") # YOLO 실행 명령어 및 반환 변수 설정
+        path = "/home/allrecipes/project/yolo/darknet"
+        yolo_photo, yolo_text = subprocess.check_output(
+            path + "/darknet detector test custom_data/detector.data custom_data/cfg/yolov3-custom.cfg backup/yolov3-custom_final.weights ./" 
+            + photo + ' > ' + photo + ".txt") # YOLO 실행 명령어 및 반환 변수 설정
         print('########## 정상 실행되었다?!')
-        print(command)
         # photo 변수를 넣어서 Yolo 실행 
         # 실행 결과값 return받아서 yolo_photo 변수에 저장
         ##########################################
 
         # YOLO Return값 변수에 저장
-        yolo_photo = 'C:/Users/Administrator/Desktop/test.jpg'
-        yolo_text = "" # text 파일 read 필요... / models.py에서 파일 필드로 수정??...
-        yolo_food_list = "" # yolo_text 파일을 read해서 food_ID 추출
+        # yolo_text = "" # text 파일 read 필요... / models.py에서 파일 필드로 수정??...
+        # yolo_food_list = "" # yolo_text 파일을 read해서 food_ID 추출
 
         # YOLO Return값을 반영하여 Serialize 하기 
         # Serialize된 데이터 DB에 저장
@@ -172,7 +173,7 @@ class Meal_record_photo_RegisterView(generics.GenericAPIView):
                 'meal_record_ID':request.data['meal_record_ID'],
                 'date':request.data['date'],
                 'time':request.data['time'],
-                'photo_file':request.data['photo_file'], # yolo_photo로 바꾸기...
+                'photo_file': yolo_photo
                 'photo_name':"테스트용"
                 }
         serializer = self.get_serializer(data=temp)
@@ -180,18 +181,21 @@ class Meal_record_photo_RegisterView(generics.GenericAPIView):
             meal_record = serializer.save()
 
         # 식단기록(Meal_record)에 음식영양성분(Food_detail) 등록하기
-        for food_ID in yolo_food_list :
-            food_name, one_serving, kcal, carbohydrate, protein, fat = retrieve_food(food_ID)
-            food_detail = Food_detail.objects.create(
-                            meal_record_ID = request.data['meal_record_ID'],
-                            food_ID = food_ID,
-                            food_name = food_name,
-                            food_quantity = one_serving,
-                            food_kcal = kcal, 
-                            carbohydrate_intake = carbohydrate, 
-                            protein_intake = protein, 
-                            fat_intake = fat
-                            )
+        # if not yolo_food_list :
+        #     error = {"error" : "None exist!"}
+        # else : 
+        #     for food_ID in yolo_food_list :
+        #         food_name, one_serving, kcal, carbohydrate, protein, fat = retrieve_food(food_ID)
+        #         food_detail = Food_detail.objects.create(
+        #                         meal_record_ID = request.data['meal_record_ID'],
+        #                         food_ID = food_ID,
+        #                         food_name = food_name,
+        #                         food_quantity = one_serving,
+        #                         food_kcal = kcal, 
+        #                         carbohydrate_intake = carbohydrate, 
+        #                         protein_intake = protein, 
+        #                         fat_intake = fat
+        #                         )
 
         # 등록된 식단기록 데이터 Return  -> 수정방향 : 해당 식단기록에 등록된 음식성분까지 보여주기(YOLO인식 사진 + 객체인식된 음식영양정보)
         return Response({"meal_record" : Meal_record_text_RegisterSerializer(meal_record, context=self.get_serializer_context()).data})
