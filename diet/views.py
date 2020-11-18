@@ -13,7 +13,7 @@ from api.serializers import (Meal_record_ListSerializer,
                             Food_nutrient_ListSerializer,
                             )  
 
-### 본인 식사기록 조회 ###
+### 식단 목록 조회 ###
 class Meal_record_ListView(generics.ListAPIView):
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     permission_classes = (IsAuthenticated,)
@@ -40,9 +40,11 @@ class Meal_record_ListView(generics.ListAPIView):
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
 
+#----------------------------------------------------------------#
 
-### 식사 등록(Text) ###
+### 식단 등록(Text) - 식단 객체 생성 ###
 class Meal_record_text_RegisterView(generics.GenericAPIView):
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
     permission_classes = [IsAuthenticated] 
 
     serializer_class = Meal_record_text_RegisterSerializer
@@ -53,8 +55,9 @@ class Meal_record_text_RegisterView(generics.GenericAPIView):
             meal_record = serializer.save()
             return Response({"meal_record" : Meal_record_text_RegisterSerializer(meal_record, context=self.get_serializer_context()).data})
 
+#----------------------------------------------------------------#
 
-### 식사 등록(Text) - 음식목록 가져오기 ###
+### 식단 등록(Text) - DB에 저장된 음식목록 가져오기 ###
 from .models import Food_nutrient
 
 class Food_nutrient_ListView(generics.GenericAPIView):
@@ -73,17 +76,21 @@ class Food_nutrient_ListView(generics.GenericAPIView):
         # 해당 데이터를 .data 부분만 Response
         return Response(serializer.data)
 
+#----------------------------------------------------------------#
 
-
-### 식사 등록(Text) - 음식목록에서 음식선택해서 등록하기 ###
+### 식사 등록(Text) - DB저장된 음식목록에서 음식선택해서 등록하기 ###
 from .models import Food_nutrient
-def retrieve_food(queryset):
+
+# food_nutrient 테이블에서 음식영양소 조회
+def retrieve_food(food_ID):
+    queryset = Food_nutrient.objects.get(food_ID = food_ID) # QuerySet으로 DB Objects 추출(속성, 메소드 존재)
+    food_name = queryset.food_name
     one_serving = queryset.one_serving
     kcal = queryset.kcal 
     carbohydrate = queryset.carbohydrate 
     protein = queryset.protein
     fat = queryset.fat
-    return one_serving, kcal, carbohydrate, protein, fat
+    return one_serving, kcal, carbohydrate, protein, fat # food_name은 이후 수정시에 추가예정
 
 class Food_detail_text_RegisterView(generics.GenericAPIView):
     serializer_class = Food_detail_text_RegisterSerializer
@@ -100,14 +107,8 @@ class Food_detail_text_RegisterView(generics.GenericAPIView):
             food_quantity = serializer.data['food_quantity']
 
             # 음식ID로 음식영양성분 DB조회 : 음식량에 따른 영양성분 계산을위해 1인분기준 영양성분 변수 할당
-            food_nutrient = Food_nutrient.objects.get(food_ID = food_ID) # QuerySet으로 DB Objects 추출(속성, 메소드 존재)
-            one_serving, kcal, carbohydrate, protein, fat = retrieve_food(food_nutrient)
-            
-            # one_serving = food_nutrient.one_serving
-            # kcal = food_nutrient.kcal 
-            # carbohydrate = food_nutrient.carbohydrate 
-            # protein = food_nutrient.protein
-            # fat = food_nutrient.fat
+            # food_nutrient = Food_nutrient.objects.get(food_ID = food_ID) # QuerySet으로 DB Objects 추출(속성, 메소드 존재)
+            one_serving, kcal, carbohydrate, protein, fat = retrieve_food(food_ID)
             
             # 음식양에 따라 섭취량 계산
             food_kcal = food_quantity * (kcal / one_serving) 
@@ -118,6 +119,7 @@ class Food_detail_text_RegisterView(generics.GenericAPIView):
             # 데이터를 저장할 DB객체 생성 
             # 외래키 필드로 정의된 것은 인스턴스(객체)로 변수에 할당해주어야 함
             meal_record = Meal_record.objects.get(meal_record_ID = meal_record_ID)
+            
             # 모델 인스턴스 DB에 저장
             food_detail = Food_detail.objects.create(
                         meal_record_ID = meal_record,
@@ -130,10 +132,13 @@ class Food_detail_text_RegisterView(generics.GenericAPIView):
                         fat_intake = fat_intake
                         )
 
+            # DB에 저장된 모델 인스턴스 Return
             return Response({"food_detail" 
                             : Food_detail_ListSerializer(food_detail, context=self.get_serializer_context()).data})
 
-### 식사 등록(Photo) ###
+#----------------------------------------------------------------#
+
+### 식사 등록(Photo) - YOLO 객체 인식 결과값 반환###
 from api.serializers import Meal_record_photo_RegisterSerializer
 import subprocess
 
@@ -142,19 +147,27 @@ class Meal_record_photo_RegisterView(generics.GenericAPIView):
 
     serializer_class = Meal_record_photo_RegisterSerializer
 
-
     def post(self, request, *args, **kwargs) :
+        # 클라이언트가 보낸 원본사진 변수에 할당
         photo = request.data['photo_file']
 
+        # 원본사진 YOLO로 보낸 후 YOLO 실행
+        ##########################################
         print('########## 정상 실행될 것이다?!')
-        command = subprocess.check_output("dir") # YOLO 실행 명령어 및 반환 변수 설정
+        command = subprocess.check_output("ls") # YOLO 실행 명령어 및 반환 변수 설정
         print('########## 정상 실행되었다?!')
+        print(command)
         # photo 변수를 넣어서 Yolo 실행 
         # 실행 결과값 return받아서 yolo_photo 변수에 저장
+        ##########################################
 
+        # YOLO Return값 변수에 저장
         yolo_photo = 'C:/Users/Administrator/Desktop/test.jpg'
-        
-        # YOLO반환값을 반영하여 Serialize형식 맞추기
+        yolo_text = "" # text 파일 read 필요... / models.py에서 파일 필드로 수정??...
+        yolo_food_list = "" # yolo_text 파일을 read해서 food_ID 추출
+
+        # YOLO Return값을 반영하여 Serialize 하기 
+        # Serialize된 데이터 DB에 저장
         temp = {'username':request.data['username'],
                 'meal_record_ID':request.data['meal_record_ID'],
                 'date':request.data['date'],
@@ -162,16 +175,28 @@ class Meal_record_photo_RegisterView(generics.GenericAPIView):
                 'photo_file':request.data['photo_file'], # yolo_photo로 바꾸기...
                 'photo_name':"테스트용"
                 }
-
-        # Serialize 및 DB저장
         serializer = self.get_serializer(data=temp)
         if serializer.is_valid(raise_exception=True) :
             meal_record = serializer.save()
-            return Response({"meal_record" : Meal_record_text_RegisterSerializer(meal_record, context=self.get_serializer_context()).data})
 
+        # 식단기록(Meal_record)에 음식영양성분(Food_detail) 등록하기
+        for food_ID in yolo_food_list :
+            food_name, one_serving, kcal, carbohydrate, protein, fat = retrieve_food(food_ID)
+            food_detail = Food_detail.objects.create(
+                            meal_record_ID = request.data['meal_record_ID'],
+                            food_ID = food_ID,
+                            food_name = food_name,
+                            food_quantity = one_serving,
+                            food_kcal = kcal, 
+                            carbohydrate_intake = carbohydrate, 
+                            protein_intake = protein, 
+                            fat_intake = fat
+                            )
 
+        # 등록된 식단기록 데이터 Return  -> 수정방향 : 해당 식단기록에 등록된 음식성분까지 보여주기(YOLO인식 사진 + 객체인식된 음식영양정보)
+        return Response({"meal_record" : Meal_record_text_RegisterSerializer(meal_record, context=self.get_serializer_context()).data})
 
-
+#----------------------------------------------------------------#
 
 ### 식사기록 섭취음식 조회 ###
 class Food_detail_ListView(generics.GenericAPIView):

@@ -36,17 +36,17 @@ class Meal_record_text_RegisterSerializer(serializers.ModelSerializer):
         fields = ('username', 'meal_record_ID', 'date', 'time')
 
 
-class Food_detail_text_RegisterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Food_detail
-        fields = ('meal_record_ID', 'food_ID', 'food_name', 'food_quantity')
-
-
 class Meal_record_photo_RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Meal_record
         # fields = ('username', 'date', 'time', 'photo_file', 'photo_name')
         fields = ('username', 'meal_record_ID', 'date', 'time', 'photo_file', 'photo_name')
+
+
+class Food_detail_text_RegisterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Food_detail
+        fields = ('meal_record_ID', 'food_ID', 'food_name', 'food_quantity')
 
 
 class Food_detail_ListSerializer(serializers.ModelSerializer):
