@@ -149,7 +149,7 @@ class Meal_record_photo_RegisterView(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs) :
         # 클라이언트가 보낸 원본사진 변수에 할당
-        photo = request.data['photo_file']
+        photo = request.data['photo_file'] # 사진 경로 확인 필요...
 
         # 원본사진 YOLO로 보낸 후 YOLO 실행
         ##########################################
@@ -173,7 +173,7 @@ class Meal_record_photo_RegisterView(generics.GenericAPIView):
                 'meal_record_ID':request.data['meal_record_ID'],
                 'date':request.data['date'],
                 'time':request.data['time'],
-                'photo_file': yolo_photo
+                'photo_file': yolo_photo,
                 'photo_name':"테스트용"
                 }
         serializer = self.get_serializer(data=temp)
