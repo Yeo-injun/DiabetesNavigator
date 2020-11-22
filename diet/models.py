@@ -10,7 +10,7 @@ class Meal_record(models.Model): # 식사기록 테이블
     username =          models.ForeignKey(User, on_delete=models.CASCADE, db_column= '사용자아이디')
     date =              models.DateField(verbose_name='입력날짜', default=date.today) # Python의 datetime.date인스턴스로 '날짜'
     time =              models.DateTimeField(verbose_name='입력시간', default=timezone.now) # Python의 datetime.datetime 인스턴스로 '날짜'와 '시간'
-    photo_origin =        models.ImageField(upload_to='photos', blank=True, null=True) # 파일경로 재설정
+    photo_origin =      models.ImageField(upload_to='photos', blank=True, null=True) # 파일경로 재설정
     photo_yolo =        models.ImageField(upload_to='photos/yolo', blank=True, null=True)
     photo_name =        models.CharField(max_length=100, verbose_name='사진이름', blank=True, null=True)
 
